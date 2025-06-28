@@ -1,10 +1,14 @@
-
-# Importing the required libraries
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
 import sqlite3
 from datetime import datetime
+import logging
+
+
+
+def setup_logger():
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s : %(message)s")
 
 def extract(url, table_attribs):
 
@@ -45,16 +49,8 @@ def load_to_database(df, sql_connection, table_name):
     df.to_sql(table_name, sql_connection, if_exists='replace', index=False)
 
 def run_query(query_statement, sql_connection):
-    print(query_statement)
     query_output = pd.read_sql(query_statement, sql_connection)
-    print(query_output)
-
-def log_progress(message):
-    timestamp_format = '%Y-%h-%d-%H:%M:%S'
-    now = datetime.now() # get current timestamp 
-    timestamp = now.strftime(timestamp_format) 
-    with open("./etl_project_log.txt","a") as f: 
-        f.write(timestamp + ' : ' + message + '\n') 
+    return query_output
 
 
 # Set required variable to run script
@@ -65,26 +61,36 @@ table_name = 'Countries_by_GDP' # Name of table to be created in database
 table_attribs = ['Country', 'GDP_USD_Billion', 'Year'] # Table attributes
 test_query = f"SELECT * FROM {table_name} WHERE {table_attribs[1]} >= 100" # Query for testing out database
 
-log_progress('Preliminaries complete. Initiating ETL process')
-extracted_df = extract(URL, table_attribs)
+def main():
+    
+    setup_logger()
+    
+    logging.info("Preliminaries complete.Initiating ETL process...")
+    logging.info("Initiating ETL process...")
+    extracted_df = extract(URL, table_attribs)
+    
+    logging.info("Data extraction complete.")
+    logging.info("Initiating Transformation process...")
+    transformed_df = transform(extracted_df)
+    
+    logging.info('Data transformation complete.')
+    logging.info("Initiating loading process...")
+    load_to_json(transformed_df, json_path)
 
-log_progress('Data extraction complete. Initiating Transformation process')
-transformed_df = transform(extracted_df)
+    logging.info('Data saved to CSV file')
+    logging.info("Loading data to database...")
+    load_to_database(transformed_df, connection_to_db, table_name)
 
-log_progress('Data transformation complete. Initiating loading process')
-load_to_json(transformed_df, json_path)
+    logging.info('Data loaded to Database as table.')
+    logging.info("Running the test query: %s", test_query)
+    logging.info("Query result: \n%s", run_query(test_query, connection_to_db))
 
-log_progress('Data saved to CSV file')
+    logging.info('Process Complete.')
+    connection_to_db.close()
 
-load_to_database(transformed_df, connection_to_db, table_name)
+if __name__=="__main__":
+    main()
 
-log_progress('Data loaded to Database as table. Running the test query')
-
-run_query(test_query, connection_to_db)
-
-log_progress('Process Complete.')
-
-connection_to_db.close()
 
 
 
