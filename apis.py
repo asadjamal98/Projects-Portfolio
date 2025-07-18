@@ -5,7 +5,8 @@ r = requests.get("https://api.github.com//repos/asadjamal98/Projects-Portfolio/c
 r.raise_for_status
 #print(json.dumps(r.json(), indent=2))
 result = r.json()
-print(len(result))
+print(len(result)) # Each commit is increasing this value
 for x in result:
     print(x.get("sha"))
 
+    
